@@ -1,9 +1,11 @@
 from memory import trim_memory
 from personalities import pick_personality
 from config import textPrompt
-from database import save_session, pick_session
+from database import save_session
+from session_manager import load_session
 from cli import header, print_message, prompt_input, info
 from response import get_response
+
 def run():
     
     persona = pick_personality()
@@ -17,27 +19,7 @@ def run():
         "content": template
     }
 
-    existing_session = pick_session(persona["name"])
-
-    if existing_session:
-        # Restore messages, replacing the base system prompt but keeping summary system messages
-        messages = [system_message] + [
-            msg for msg in existing_session["messages"]
-            if not (msg["role"] == "system" and not msg.get("is_summary"))
-        ]
-        print(f"Resuming session from {existing_session['created_at'].strftime('%Y-%m-%d %H:%M')}.\n")
-
-        for msg in messages:
-            print_message(msg["role"], persona["name"], msg["content"])
-            if msg.get("role") == "assistant":
-                print()
-    else:
-        messages = [system_message]
-
-        first_msg = persona.get("opening_prompt", "Introduce yourself and start the conversation.")
-        print_message("assistant", persona["name"], first_msg)
-        print()
-        messages.append({"role": "assistant", "content": first_msg})
+    messages, existing_session, full_messages = load_session(persona, system_message)
 
     initial_user_count = sum(1 for m in messages if m.get("role") == "user")
     # Only trim after this many new messages have been added in this run
@@ -46,7 +28,7 @@ def run():
     # runtime flag: becomes True when the user sends a message during this run
     user_sent = False
 
-    
+    actual_messages = full_messages  # Keep a full record of messages for saving
     
     
     while True:
@@ -84,6 +66,6 @@ def run():
 
         # Trim only once every TRIM_INTERVAL messages to reduce calls
         if messages_since_trim >= TRIM_INTERVAL:
-           
+            actual_messages.extend(messages)
             messages = trim_memory(messages, system_message)
             messages_since_trim = 0

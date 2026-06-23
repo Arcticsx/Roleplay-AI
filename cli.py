@@ -53,6 +53,6 @@ def print_sessions(sessions):
 
 def print_message(role, name, content):
     if role == "user":
-        print(f"{BOLD}You:{RESET} {content}")
+        print(f"{BOLD}{YELLOW}You:{RESET} {content}")
     else:
         print(f"{BOLD}{YELLOW}{name}:{RESET} {content}")
