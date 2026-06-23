@@ -1,5 +1,3 @@
-import ollama
-from config import MODEL
 from memory import trim_memory
 from personalities import pick_personality
 from config import textPrompt
@@ -48,7 +46,7 @@ def run():
     # runtime flag: becomes True when the user sends a message during this run
     user_sent = False
 
-    actual_messages = []
+    
     
     
     while True:
@@ -86,6 +84,6 @@ def run():
 
         # Trim only once every TRIM_INTERVAL messages to reduce calls
         if messages_since_trim >= TRIM_INTERVAL:
-            actual_messages.append(messages)
+           
             messages = trim_memory(messages, system_message)
             messages_since_trim = 0

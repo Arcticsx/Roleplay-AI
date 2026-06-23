@@ -1,5 +1,3 @@
-import ollama
-from config import MODEL
 from response import get_response
 
 def summarize(messages):
