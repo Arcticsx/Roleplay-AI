@@ -32,7 +32,7 @@ def run():
 
     while True:
         user_input = prompt_input("You:")
-
+        print()
         if user_input == 'Exit':
             # Only save if the user actually sent something new this run
             if user_sent or sum(1 for m in actual_messages if m.get("role") == "user") > initial_user_count:
@@ -46,6 +46,7 @@ def run():
             return
 
         messages.append({"role": "user", "content": user_input})
+        
         user_sent = True
     
 
@@ -59,7 +60,7 @@ def run():
             continue
 
         print_message("assistant", persona["name"], assistant_msg)
-        print()
+        
 
         messages.append({"role": "assistant", "content": assistant_msg})
     
