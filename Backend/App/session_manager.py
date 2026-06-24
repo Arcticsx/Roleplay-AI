@@ -21,7 +21,7 @@ def load_session(persona, system_message):
             if msg.get("role") == "system":
                 continue
             print_message(msg["role"], persona["name"], msg["content"])
-            if msg.get("role") == "assistant":
+            if msg.get("role") == "user":
                 print()
     else:
         # Fresh session — start with just the system message and the persona's opening line
