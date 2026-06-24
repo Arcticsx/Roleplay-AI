@@ -35,7 +35,7 @@ def run():
 
         if user_input == 'Exit':
             # Only save if the user actually sent something new this run
-            if user_sent or sum(1 for m in messages if m.get("role") == "user") > initial_user_count:
+            if user_sent or sum(1 for m in actual_messages if m.get("role") == "user") > initial_user_count:
                 if existing_session:
                     save_session(persona["name"], actual_messages, existing_session.get("_id"))
                 else:
@@ -62,7 +62,7 @@ def run():
         print()
 
         messages.append({"role": "assistant", "content": assistant_msg})
-   
+    
 
         # Summarise and compress history once the trim interval is reached
       

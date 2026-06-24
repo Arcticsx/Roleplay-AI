@@ -4,6 +4,8 @@ from datetime import datetime
 from config import MONGO_URI
 from bson import ObjectId
 from cli import prompt_input, print_sessions, success, info
+from bson.errors import InvalidId
+
 
 # Module-level connection — shared across all DB calls
 client = MongoClient(MONGO_URI)
@@ -15,12 +17,17 @@ def save_session(persona_name, messages, session_id=None):
 
     If `session_id` is provided, update that document instead of inserting.
     """
+    if not messages:
+        info("No messages to save.")
+        return
+
+    
     now = datetime.now()
     if session_id:
         # Accept either ObjectId or raw string
         try:
             _id = ObjectId(session_id)
-        except Exception:
+        except InvalidId:
             _id = session_id
         result = sessions_col.update_one(
             {"_id": _id},

@@ -32,7 +32,7 @@ def load_session(persona, system_message):
         messages.append({"role": "assistant", "content": first_msg})
 
     # Keep a full copy before trimming (used for saving to DB)
-    full_messages = messages
+    full_messages = list(messages)
 
     # Pre-trim if the loaded history is already long
     messages = trim_memory(messages, system_message) if len(messages) > 15 else messages
