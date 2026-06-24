@@ -25,8 +25,6 @@ def run():
 
     # Track how many user messages existed before this run (for save-on-exit logic)
     initial_user_count = sum(1 for m in messages if m.get("role") == "user")
-    TRIM_INTERVAL = 5       # trigger memory trim every N new messages
-    messages_since_trim = 0
     user_sent = False       # becomes True once the user sends their first message
 
     # full_messages is the complete untruncated history used for saving to DB
@@ -49,7 +47,7 @@ def run():
 
         messages.append({"role": "user", "content": user_input})
         user_sent = True
-        messages_since_trim += 1
+    
 
         # Call the LLM; on failure let the user retry rather than crashing
         assistant_msg = None
@@ -64,10 +62,12 @@ def run():
         print()
 
         messages.append({"role": "assistant", "content": assistant_msg})
-        messages_since_trim += 1
+   
 
         # Summarise and compress history once the trim interval is reached
-        if messages_since_trim >= TRIM_INTERVAL:
-            actual_messages.extend(messages)
-            messages = trim_memory(messages, system_message)
-            messages_since_trim = 0
+      
+        actual_messages.append({"role": "user", "content": user_input})
+        actual_messages.append({"role": "assistant", "content": assistant_msg})
+
+        messages = trim_memory(messages, system_message)
+

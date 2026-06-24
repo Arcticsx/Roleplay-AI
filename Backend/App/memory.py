@@ -3,6 +3,7 @@ from response import get_response
 
 def summarize(messages):
     # Sends the raw message list to the LLM and returns a plain-text summary
+        
     summary_prompt = [
         {
             "role": "system",
@@ -21,6 +22,9 @@ def trim_memory(messages, system_message):
     # This prevents system message duplication across multiple trim cycles.
     non_system = [m for m in messages if m.get("role") != "system"]
 
+    if len(non_system) <= 10:
+        return messages
+    
     # Summarize everything except the 10 most recent exchanges
     old = non_system[:-10]
     new = non_system[-10:]

@@ -39,12 +39,16 @@ def create_personality():
 def pick_personality():
     # List available personas and let the user choose or create a new one
     personalities = get_personalities()
+    
+    if not personalities:
+        info("No personas found. Let's create one.")
+        return create_personality()
 
     header("Pick a personality")
     for key, val in personalities.items():
         print(f"  {key}. {val['name']}")
     print("  N. Create new persona")
-
+    
     choice = prompt_input("Enter number or N:").strip().lower()
 
     if choice == "n":

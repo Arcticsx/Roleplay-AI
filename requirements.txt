@@ -1,3 +1,5 @@
 aisuite
 dotenv
 pymongo
+pytest
+pytest-mock
