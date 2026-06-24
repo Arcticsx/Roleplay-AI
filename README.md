@@ -4,7 +4,7 @@ A CLI application for immersive roleplay conversations with AI-powered character
 
 ## Features
 
-- **Multiple AI Providers**: Works with OpenAI, Anthropic Claude, Deepkseek and local Ollama models
+- **Multiple AI Providers**: Works with OpenAI, Anthropic Claude, Deepseek and local Ollama models
 - **Persistent Sessions**: Conversations are saved and can be resumed later
 - **Custom Personalities**: Create and select different character personas
 - **Memory Management**: Automatic conversation trimming and summarization
