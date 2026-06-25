@@ -43,15 +43,20 @@ def save_session(persona_name, messages, session_id=None):
     now = datetime.now().isoformat()
 
     if session_id:
-
+        # Update existing session
         cursor.execute("""
             UPDATE sessions
             SET persona=?, updated_at=?
             WHERE id=?
         """, (persona_name, now, session_id))
+        
+        # Delete all existing messages for this session to avoid order issues
+        cursor.execute("""
+            DELETE FROM messages WHERE session_id = ?
+        """, (session_id,))
 
     else:
-    
+        # Create new session
         cursor.execute("""
             INSERT INTO sessions(persona, created_at, updated_at)
             VALUES (?, ?, ?)
@@ -59,30 +64,21 @@ def save_session(persona_name, messages, session_id=None):
 
         session_id = cursor.lastrowid
 
+    # Insert all messages in order (skipping system messages)
     for msg in messages:
+        # Skip system messages
+        if msg.get("role") == "system":
+            continue
 
-        if "id" in msg:
-            cursor.execute("""
-                UPDATE messages
-                SET session_id=?, sender=?, content=?
-                WHERE id=?
-            """, (
-                session_id,
-                msg["role"],
-                msg["content"],
-                msg["id"]
-            ))
-
-
-        else:
-            cursor.execute("""
-                INSERT INTO messages(session_id, sender, content)
-                VALUES (?, ?, ?)
-            """, (
-                session_id,
-                msg["role"],
-                msg["content"]
-            ))
+        # Insert message in order
+        cursor.execute("""
+            INSERT INTO messages(session_id, sender, content)
+            VALUES (?, ?, ?)
+        """, (
+            session_id,
+            msg["role"],
+            msg["content"]
+        ))
 
     conn.commit()
     success("Session saved.")

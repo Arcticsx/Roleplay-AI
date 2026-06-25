@@ -45,18 +45,31 @@ def prompt_input(prompt_text):
 
 def print_sessions(sessions):
     # Lists sessions with index, timestamp, and message count
+    from database import cursor  # Import here to avoid circular dependency
+
     if not sessions:
         info("No previous sessions found.")
         return
+
     print()
     print(f"{BOLD}Previous sessions:{RESET}")
+
     for i, s in enumerate(sessions, start=1):
-        created = s.get("created_at")
-        if isinstance(created, datetime.datetime):
-            created = created.strftime("%Y-%m-%d %H:%M")
-        msg_count = len(s.get("messages", []))
+
+        created = s["created_at"]
+
+        # Count messages for this session
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM messages
+            WHERE session_id = ?
+        """, (s["id"],))
+
+        msg_count = cursor.fetchone()[0]
+
         print(f"  {i}. {created} ({msg_count} messages)")
-    print(f"  N. Start new session")
+
+    print("  N. Start new session")
 
 
 def print_message(role, name, content):
