@@ -1,7 +1,6 @@
 # Loads a session from the DB (or starts a new one) and returns the message list
 
 from database import pick_session, cursor
-from cli import print_message
 from memory import trim_memory
 
 
@@ -31,10 +30,8 @@ def load_session(persona, system_message):
         messages = [system_message]
 
         for row in rows:
-            role = row[1]
-
             # Skip old system messages if any exist
-            if role == "system":
+            if role[1] == "system":
                 continue
 
             messages.append({
@@ -43,43 +40,16 @@ def load_session(persona, system_message):
                 "content": row[2]
             })
 
-        print(f"Resuming session from {existing_session['created_at']}\n")
-
-        # Replay conversation in terminal
-        for msg in messages:
-            if msg["role"] == "system":
-                continue
-
-            print_message(
-                msg["role"],
-                persona["name"],
-                msg["content"]
-            )
-
-            if msg["role"] == "user":
-                print()
-
     else:
         # Start new session
-        messages = [system_message]
-
         first_msg = persona.get(
             "opening_prompt",
             "Introduce yourself and start the conversation."
         )
-
-        print_message(
-            "assistant",
-            persona["name"],
-            first_msg
-        )
-
-        print()
-
-        messages.append({
-            "role": "assistant",
-            "content": first_msg
-        })
+        messages = [
+            system_message,
+            {"role": "assistant", "content": first_msg}
+        ]
 
     # Full history before trimming
     full_messages = messages.copy()

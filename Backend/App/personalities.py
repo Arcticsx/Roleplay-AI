@@ -1,6 +1,5 @@
 # Manages persona selection and creation
 from database import cursor, conn
-from cli import header, prompt_input, info
 from config import textPrompt
 
 cursor.execute("""
@@ -38,14 +37,8 @@ def get_personalities():
     }
 
 
-def create_personality():
-    # Prompt the user to fill in a new persona and persist it to the DB
-    header("Create a new persona")
-    name = prompt_input("Name:").strip()
-    system = prompt_input("System prompt (describe the personality):").strip()
-    scenario = prompt_input("Scenario (describe the situation):").strip()
-    firstMessage = prompt_input("First Message: ").strip()
-
+def create_personality(name: str, system: str, scenario: str, opening_prompt: str):
+    
     personalities = get_personalities()
     keys = [int(p["key"]) for p in personalities.values()]
     next_key = str(max(keys) + 1) if keys else "1"  # auto-increment key
@@ -55,7 +48,7 @@ def create_personality():
         "name": name,
         "system": system,
         "Scenario": scenario,
-        "opening_prompt": firstMessage
+        "opening_prompt": opening_prompt
     }
 
     cursor.execute("""
@@ -70,29 +63,23 @@ def create_personality():
         new_persona["opening_prompt"]
     ))
     conn.commit()
-    info(f"Persona '{name}' created!")
     return new_persona
 
 
-def pick_personality():
+def pick_personality(choice: str):
     # List available personas and let the user choose or create a new one
     personalities = get_personalities()
     
     if not personalities:
-        info("No personas found. Let's create one.")
-        return create_personality()
+        return None
 
-    header("Pick a personality")
-    for key, val in personalities.items():
-        print(f"  {key}. {val['name']}")
-    print("  N. Create new persona")
+    if choice.lower() == "n":
+        return None
     
-    choice = prompt_input("Enter number or N:").strip().lower()
+    normalized = {str(k): v for k, v in personalities.items()}
 
-    if choice == "n":
-        return create_personality()
 
     if choice not in personalities:
-        info("Invalid choice, defaulting to first persona.")
+        return list(personalities.values())[0]
 
-    return personalities.get(choice, list(personalities.values())[0])
+    return normalized[choice] 

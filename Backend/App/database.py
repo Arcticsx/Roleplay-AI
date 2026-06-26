@@ -1,17 +1,25 @@
-# Handles all MongoDB operations for sessions
-import sys
-from datetime import datetime
-from cli import prompt_input, print_sessions, success, info
-from pathlib import Path
 import sqlite3
+from datetime import datetime
+from pathlib import Path
+from memory import trim_memory
 
+
+# Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
-print(BASE_DIR)
 
-conn = sqlite3.connect(BASE_DIR/"data/chatbot.db")
+# Ensure data folder exists
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
+
+DB_PATH = DATA_DIR / "chatbot.db"
+
+# Database connection
+conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 conn.row_factory = sqlite3.Row
 cursor = conn.cursor()
 
+
+# Create tables
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,7 +28,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     updated_at TEXT NOT NULL
 )
 """)
-conn.commit()
+
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,15 +38,127 @@ CREATE TABLE IF NOT EXISTS messages (
     FOREIGN KEY (session_id) REFERENCES sessions(id)
 )
 """)
+
 conn.commit()
 
 
+def get_sessions(persona_name):
+    """
+    Return last 5 sessions for a persona
+    """
+    cursor.execute("""
+        SELECT id, persona, created_at, updated_at
+        FROM sessions
+        WHERE persona = ?
+        ORDER BY updated_at DESC
+        LIMIT 5
+    """, (persona_name,))
+
+    return [
+        {
+            "id": row["id"],
+            "persona": row["persona"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"]
+        }
+        for row in cursor.fetchall()
+    ]
+
+
+def get_session_by_index(persona_name, index=0):
+    """
+    Get session by position in latest sessions list
+    index=0 → latest session
+    """
+    sessions = get_sessions(persona_name)
+
+    if not sessions:
+        return None
+
+    if 0 <= index < len(sessions):
+        return sessions[index]
+
+    return None
+
+
+def pick_session(persona_name):
+    """
+    Pick latest session automatically
+    """
+    return get_session_by_index(persona_name, 0)
+
+
+def load_session(persona, system_message):
+    """
+    Load existing session or create new conversation
+    """
+
+    existing_session = (
+        pick_session(persona["name"])
+        if persona and persona.get("name")
+        else None
+    )
+
+    if existing_session:
+        session_id = existing_session["id"]
+
+        cursor.execute("""
+            SELECT id, sender, content
+            FROM messages
+            WHERE session_id = ?
+            ORDER BY id ASC
+        """, (session_id,))
+
+        rows = cursor.fetchall()
+
+        messages = [system_message]
+
+        for row in rows:
+            # Ignore accidental old system messages
+            if row["sender"] == "system":
+                continue
+
+            messages.append({
+                "id": row["id"],
+                "role": row["sender"],
+                "content": row["content"]
+            })
+
+    else:
+        first_msg = (
+            persona.get(
+                "opening_prompt",
+                "Introduce yourself and start the conversation."
+            )
+            if persona
+            else "Introduce yourself and start the conversation."
+        )
+
+        messages = [
+            system_message,
+            {
+                "role": "assistant",
+                "content": first_msg
+            }
+        ]
+
+    # Keep full history
+    full_messages = messages.copy()
+
+    # Trim if too long
+    if len(messages) > 15:
+        messages = trim_memory(messages, system_message)
+
+    return messages, existing_session, full_messages
 
 
 def save_session(persona_name, messages, session_id=None):
+    """
+    Save/update session and messages
+    """
+
     if not messages:
-        info("No messages to save.")
-        return
+        return None
 
     now = datetime.now().isoformat()
 
@@ -49,30 +169,31 @@ def save_session(persona_name, messages, session_id=None):
             SET persona=?, updated_at=?
             WHERE id=?
         """, (persona_name, now, session_id))
-        
-        # Delete all existing messages for this session to avoid order issues
+
+        # Replace messages
         cursor.execute("""
-            DELETE FROM messages WHERE session_id = ?
+            DELETE FROM messages
+            WHERE session_id=?
         """, (session_id,))
 
     else:
         # Create new session
         cursor.execute("""
-            INSERT INTO sessions(persona, created_at, updated_at)
+            INSERT INTO sessions
+            (persona, created_at, updated_at)
             VALUES (?, ?, ?)
         """, (persona_name, now, now))
 
         session_id = cursor.lastrowid
 
-    # Insert all messages in order (skipping system messages)
+    # Save messages
     for msg in messages:
-        # Skip system messages
         if msg.get("role") == "system":
             continue
 
-        # Insert message in order
         cursor.execute("""
-            INSERT INTO messages(session_id, sender, content)
+            INSERT INTO messages
+            (session_id, sender, content)
             VALUES (?, ?, ?)
         """, (
             session_id,
@@ -81,61 +202,12 @@ def save_session(persona_name, messages, session_id=None):
         ))
 
     conn.commit()
-    success("Session saved.")
-                       
-                       
 
-def get_sessions(persona_name):
-    cursor.execute("""
-        SELECT id, persona, created_at, updated_at
-        FROM sessions
-        WHERE persona = ?
-        ORDER BY updated_at DESC
-        LIMIT 5
-    """, (persona_name,))
+    return session_id
 
-    rows = cursor.fetchall()
 
-    return [
-        {
-            "id": row[0],
-            "persona": row[1],
-            "created_at": row[2],
-            "updated_at": row[3]
-        }
-        for row in rows
-    ]
-
-def pick_session(persona_name):
-    sessions = get_sessions(persona_name)
-
-    if not sessions:
-        return None
-
-    print_sessions(sessions)
-    while True:
-        try:
-            choice = prompt_input("Enter number, N for new session, or Exit to quit:").strip().lower()
-
-            if not choice:
-                print("Input cannot be empty. Please try again.")
-                continue
-
-            if choice == "exit":
-                print("Exiting program. Goodbye!")
-                sys.exit(0)
-
-            if choice == "n":
-                return None
-
-            index = int(choice) - 1
-            if 0 <= index < len(sessions):
-                return sessions[index]
-            else:
-                print(f"Please enter a number between 1 and {len(sessions)}.")
-
-        except ValueError:
-            print("Invalid input. Enter a number, N, or Exit.")
-        except (KeyboardInterrupt, EOFError):
-            print("\nInput cancelled.")
-            return None
+def close_db():
+    """
+    Close database connection safely
+    """
+    conn.close()

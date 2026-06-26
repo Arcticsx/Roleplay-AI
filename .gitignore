@@ -32,3 +32,5 @@ Thumbs.db
 todo.txt
 
 chatbot.db
+Backend/data/chatbot.db
+Backend/App/chatbot.db

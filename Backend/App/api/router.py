@@ -1,8 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from personalities import get_personalities, create_personality, pick_personality
-from session_manager import load_session
-from database import save_session
+from database import save_session, load_session
 from response import get_response
 from memory import trim_memory
 from config import textPrompt

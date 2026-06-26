@@ -1,15 +1,42 @@
 # Main chat loop — orchestrates persona, session, message flow, and memory trimming
 from memory import trim_memory
-from personalities import pick_personality
 from config import textPrompt
 from database import save_session
 from session_manager import load_session
 from cli import header, print_message, prompt_input, info
 from response import get_response
+from personalities import get_personalities, create_personality, pick_personality
+
+def _cli_pick_personality():
+    personalities = get_personalities()
+    if not personalities:
+        info("No personas found. Let's create one.")
+        name = prompt_input("Name:").strip()
+        system = prompt_input("System prompt:").strip()
+        scenario = prompt_input("Scenario:").strip()
+        first_msg = prompt_input("First Message:").strip()
+        return create_personality(name, system, scenario, first_msg)
+
+    header("Pick a personality")
+    for key, val in personalities.items():
+        print(f"  {key}. {val['name']}")
+    print("  N. Create new persona")
+
+    choice = prompt_input("Enter number or N:").strip().lower()
+    result = pick_personality(choice)
+
+    if result is None:
+        name = prompt_input("Name:").strip()
+        system = prompt_input("System prompt:").strip()
+        scenario = prompt_input("Scenario:").strip()
+        first_msg = prompt_input("First Message:").strip()
+        return create_personality(name, system, scenario, first_msg)
+
+    return result
 
 def run():
     # Pick or create a persona, then greet the user
-    persona = pick_personality()
+    persona = _cli_pick_personality()
     header(f"Now chatting with {persona['name']}")
     print("Type 'Exit' to quit.\n")
 
@@ -22,6 +49,19 @@ def run():
 
     # Load an existing session or start fresh
     messages, existing_session, full_messages = load_session(persona, system_message)
+
+    # CLI-only: replay history to terminal
+    if existing_session:
+        print(f"Resuming session from {existing_session['created_at']}\n")
+        for msg in full_messages:
+            if msg["role"] == "system":
+                continue
+            print_message(msg["role"], persona["name"], msg["content"])
+            if msg["role"] == "user":
+                print()
+    else:
+        print_message("assistant", persona["name"], full_messages[-1]["content"])
+        print()
     
     messages = [
         {k: v for k, v in msg.items() if k != "id"}
