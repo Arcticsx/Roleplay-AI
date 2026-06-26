@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "backend": "cd backend/app && python main.py",
+    "frontend": "cd frontend && npm run dev"
+  }
+}
