@@ -3,3 +3,4 @@ dotenv
 pymongo
 pytest
 pytest-mock
+python-multipart

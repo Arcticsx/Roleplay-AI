@@ -1,5 +1,13 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Form,
+    File,
+    UploadFile,
+    FastAPI
+)
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from personalities import (
     get_personalities,
@@ -8,10 +16,15 @@ from personalities import (
     delete_personality,
     pick_personality,
 )
-from database import save_session, load_session, get_session_by_index, get_sessions
+from database import save_session, load_session, get_session_by_index, get_sessions, DATA_DIR 
 from response import get_response
 from memory import trim_memory
 from config import textPrompt
+import os
+import shutil
+from uuid import uuid4
+from pathlib import Path
+
 
 app = FastAPI()
 
@@ -23,54 +36,95 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+AVATAR_DIR = Path(DATA_DIR) / "images"
 
+os.makedirs(AVATAR_DIR, exist_ok=True)
+
+# Mount static files to serve images
+app.mount("/data/images", StaticFiles(directory=str(AVATAR_DIR)), name="images")
 
 #------------------PERSONALITIES----------------------
+
 
 @app.get("/personalities")
 def list_personalities():
     return get_personalities()
 
-class CreatePersonaRequest(BaseModel):
-    name: str
-    description: str | None = None
-    system: str
-    scenario: str
-    opening_prompt: str
-    avatar: str | None = None
-    
+
 @app.post("/personalities", status_code=201)
-def create_persona(body:CreatePersonaRequest):
+async def create_persona(
+    name: str = Form(...),
+    description: str = Form(None),
+    system: str = Form(...),
+    scenario: str = Form(...),
+    opening_prompt: str = Form(...),
+    avatar: UploadFile = File(None)
+):
+    avatar_rel_path = None
+
+    if avatar:
+        # Keep unique filename
+        extension = avatar.filename.split(".")[-1]
+        filename = f"{uuid4()}.{extension}"
+
+        # Store file in Data/images/
+        file_path = AVATAR_DIR / filename
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(avatar.file, buffer)
+        
+        # Return URL path for frontend to access
+        avatar_rel_path = f"/data/images/{filename}"
+
     return create_personality(
-        body.name,
-        body.description,
-        body.system,
-        body.scenario,
-        body.opening_prompt,
-        body.avatar,
+        name=name,
+        description=description,
+        system=system,
+        scenario=scenario,
+        opening_prompt=opening_prompt,
+        avatar=avatar_rel_path
     )
 
-class UpdatePersonaRequest(BaseModel):
-    name: str
-    description: str | None = None
-    system: str
-    scenario: str
-    opening_prompt: str
-    avatar: str | None = None
 
 @app.put("/personalities/{persona_key}")
-def update_persona(persona_key: str, body: UpdatePersonaRequest):
+async def update_persona(
+    persona_key: str,
+    name: str = Form(...),
+    description: str = Form(None),
+    system: str = Form(...),
+    scenario: str = Form(...),
+    opening_prompt: str = Form(...),
+    avatar: UploadFile = File(None)
+):
+    avatar_rel_path = None
+
+    if avatar:
+        extension = avatar.filename.split(".")[-1]
+        filename = f"{uuid4()}.{extension}"
+
+        # Store file in Data/images/
+        file_path = AVATAR_DIR / filename
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(avatar.file, buffer)
+        
+        # Return URL path for frontend to access
+        avatar_rel_path = f"/data/images/{filename}"
+
     updated = update_personality(
         persona_key,
-        body.name,
-        body.description,
-        body.system,
-        body.scenario,
-        body.opening_prompt,
-        body.avatar,
+        name,
+        description,
+        system,
+        scenario,
+        opening_prompt,
+        avatar_rel_path,
     )
+
     if not updated:
-        raise HTTPException(status_code=404, detail="Persona not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="Persona not found."
+        )
+
     return updated
 
 @app.delete("/personalities/{persona_key}")

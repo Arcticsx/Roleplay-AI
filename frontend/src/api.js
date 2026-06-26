@@ -1,4 +1,15 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+export function getImageUrl(path) {
+  if (!path) return null;
+  // If path is already a full URL, return as-is
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  // If path starts with /, construct backend URL
+  if (path.startsWith('/')) return `${BACKEND_URL}${path}`;
+  // Otherwise, assume it's a relative path
+  return `${BACKEND_URL}/${path}`;
+}
 
 async function handleResponse(res) {
   const text = await res.text();
@@ -26,10 +37,19 @@ export const api = {
   },
 
   async createPersonality(data) {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    formData.append('system', data.system);
+    formData.append('scenario', data.scenario);
+    formData.append('opening_prompt', data.opening_prompt);
+    if (data.avatar instanceof File) {
+      formData.append('avatar', data.avatar);
+    }
+    
     const res = await fetch(`${API_BASE}/personalities`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: formData
     });
     return handleResponse(res);
   },
@@ -44,10 +64,19 @@ export const api = {
   },
 
   async updatePersonality(personaKey, data) {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    formData.append('system', data.system);
+    formData.append('scenario', data.scenario);
+    formData.append('opening_prompt', data.opening_prompt);
+    if (data.avatar instanceof File) {
+      formData.append('avatar', data.avatar);
+    }
+    
     const res = await fetch(`${API_BASE}/personalities/${encodeURIComponent(personaKey)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: formData
     });
     return handleResponse(res);
   },

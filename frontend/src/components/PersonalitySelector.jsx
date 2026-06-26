@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../api';
+import { api, getImageUrl } from '../api';
 import ConfirmModal from './ConfirmModal.jsx';
 import EditModal from './EditModal.jsx';
 import './PersonalitySelector.css';
@@ -158,7 +158,7 @@ function PersonalitySelector({ onPersonaSelected }) {
             <div className="persona-card-top">
               <div className="persona-avatar-wrap" onClick={() => handlePersonaClick(persona)}>
                 {persona.avatar ? (
-                  <img src={persona.avatar} alt={persona.name} className="persona-avatar" />
+                  <img src={getImageUrl(persona.avatar)} alt={persona.name} className="persona-avatar" />
                 ) : (
                   <div className="persona-avatar-fallback">{(persona.name || 'P').charAt(0)}</div>
                 )}

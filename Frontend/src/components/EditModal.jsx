@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { getImageUrl } from '../api';
 import './EditModal.css';
 
 export default function EditModal({ open, initialData, onSave, onCancel, saving }) {
-  const [form, setForm] = useState({ name: '', description: '', system: '', scenario: '', opening_prompt: '', avatar: '' });
+  const [form, setForm] = useState({ name: '', description: '', system: '', scenario: '', opening_prompt: '', avatar: null });
   const [errors, setErrors] = useState({});
   const [preview, setPreview] = useState('');
 
@@ -14,11 +15,12 @@ export default function EditModal({ open, initialData, onSave, onCancel, saving 
         system: initialData.system || '',
         scenario: initialData.Scenario || '',
         opening_prompt: initialData.opening_prompt || '',
-        avatar: initialData.avatar || ''
+        avatar: null // Don't store existing avatar as file object
       });
-      setPreview(initialData.avatar || '');
+      // Set preview to the backend URL for existing avatar
+      setPreview(initialData.avatar ? getImageUrl(initialData.avatar) : '');
     } else {
-      setForm({ name: '', description: '', system: '', scenario: '', opening_prompt: '', avatar: '' });
+      setForm({ name: '', description: '', system: '', scenario: '', opening_prompt: '', avatar: null });
       setPreview('');
     }
     setErrors({});
@@ -38,11 +40,14 @@ export default function EditModal({ open, initialData, onSave, onCancel, saving 
   const handleFileChange = (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
+    
+    // Store the actual File object
+    setForm((s) => ({ ...s, avatar: f }));
+    
+    // Create preview URL for display
     const reader = new FileReader();
     reader.onload = () => {
-      const dataUrl = reader.result;
-      setPreview(dataUrl);
-      setForm((s) => ({ ...s, avatar: dataUrl }));
+      setPreview(reader.result);
     };
     reader.readAsDataURL(f);
   };

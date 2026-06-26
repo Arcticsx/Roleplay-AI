@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS personalities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     key TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
+    description TEXT,
     system TEXT,
     scenario TEXT,
     opening_prompt TEXT,
