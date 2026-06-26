@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from personalities import get_personalities, create_personality, pick_personality
 from database import save_session, load_session, get_session_by_index, get_sessions
@@ -7,6 +8,15 @@ from memory import trim_memory
 from config import textPrompt
 
 app = FastAPI()
+
+# Enable CORS for React frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 #------------------PERSONALITIES----------------------

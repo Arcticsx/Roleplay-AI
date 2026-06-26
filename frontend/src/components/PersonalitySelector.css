@@ -1,0 +1,112 @@
+.personality-selector {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.personality-selector h1 {
+  margin-bottom: 20px;
+  color: #4ec9b0;
+}
+
+.personality-list {
+  margin-bottom: 20px;
+}
+
+.personality-item {
+  padding: 15px;
+  margin-bottom: 10px;
+  background-color: #2d2d2d;
+  border: 1px solid #3e3e3e;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.personality-item:hover {
+  background-color: #3e3e3e;
+  border-color: #4ec9b0;
+}
+
+.persona-key {
+  color: #4ec9b0;
+  font-weight: bold;
+}
+
+.persona-name {
+  color: #d4d4d4;
+}
+
+.btn-create {
+  width: 100%;
+  padding: 15px;
+  background-color: #0e639c;
+  color: white;
+  border: none;
+  font-size: 14px;
+}
+
+.btn-create:hover {
+  background-color: #1177bb;
+}
+
+.create-form {
+  background-color: #2d2d2d;
+  padding: 20px;
+  border: 1px solid #3e3e3e;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: #4ec9b0;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 8px;
+  background-color: #1e1e1e;
+  border: 1px solid #3e3e3e;
+  color: #d4d4d4;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #4ec9b0;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.form-buttons button {
+  flex: 1;
+  padding: 10px;
+  background-color: #0e639c;
+  color: white;
+  border: none;
+}
+
+.form-buttons button:hover:not(:disabled) {
+  background-color: #1177bb;
+}
+
+.form-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-buttons button[type="button"] {
+  background-color: #3e3e3e;
+}
+
+.form-buttons button[type="button"]:hover:not(:disabled) {
+  background-color: #4e4e4e;
+}

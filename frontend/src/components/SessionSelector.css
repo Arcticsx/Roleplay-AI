@@ -1,0 +1,77 @@
+.session-selector {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.btn-back {
+  padding: 10px 15px;
+  background-color: #3e3e3e;
+  color: #d4d4d4;
+  border: 1px solid #3e3e3e;
+  margin-bottom: 20px;
+}
+
+.btn-back:hover {
+  background-color: #4e4e4e;
+  border-color: #4ec9b0;
+}
+
+.session-selector h1 {
+  color: #4ec9b0;
+  margin-bottom: 10px;
+}
+
+.session-selector h2 {
+  color: #d4d4d4;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.session-item {
+  padding: 15px;
+  background-color: #2d2d2d;
+  border: 1px solid #3e3e3e;
+  cursor: pointer;
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
+.session-item:hover {
+  background-color: #3e3e3e;
+  border-color: #4ec9b0;
+}
+
+.session-item.new-session {
+  border-color: #0e639c;
+}
+
+.session-item.new-session:hover {
+  background-color: #0e639c;
+}
+
+.session-label {
+  color: #4ec9b0;
+  font-weight: bold;
+  min-width: 60px;
+}
+
+.session-item.new-session .session-label {
+  color: #ffffff;
+}
+
+.session-info {
+  flex: 1;
+}
+
+.session-date {
+  color: #858585;
+  font-size: 12px;
+  margin-top: 3px;
+}
