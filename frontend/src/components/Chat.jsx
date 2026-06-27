@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import './Chat.css';
 
 function Chat({ persona, session, onBack }) {
+  const { personaKey, sessionId: routeSessionId } = useParams();
   const [messages, setMessages] = useState([]);
   const [context, setContext] = useState([]);
-  const [sessionId, setSessionId] = useState(session?.id || null);
+  const [sessionId, setSessionId] = useState(session?.id || routeSessionId || null);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -13,8 +15,12 @@ function Chat({ persona, session, onBack }) {
   const textareaRef = useRef(null);
 
   useEffect(() => {
+    setSessionId(session?.id || routeSessionId || null);
+  }, [session?.id, routeSessionId]);
+
+  useEffect(() => {
     initializeChat();
-  }, []);
+  }, [persona?.key, session?.id, routeSessionId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -25,12 +31,15 @@ function Chat({ persona, session, onBack }) {
   };
 
   const initializeChat = async () => {
+    const activeSession = session || (routeSessionId ? { id: routeSessionId } : null);
     setInitializing(true);
+    setMessages([]);
+    setContext([]);
     try {
-      const data = await api.loadSession(persona.key, session);
+      const data = await api.loadSession(persona.key, activeSession);
       setMessages(data.messages || []);
       setContext(data.context || []);
-      setSessionId(session?.id || null);
+      setSessionId(activeSession?.id || null);
     } catch (error) {
       console.error('Failed to load session:', error);
       alert('Failed to load chat session');

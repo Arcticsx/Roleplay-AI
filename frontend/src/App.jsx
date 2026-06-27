@@ -1,57 +1,83 @@
 import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import PersonalitySelector from './components/PersonalitySelector.jsx';
 import SessionSelector from './components/SessionSelector.jsx';
 import Chat from './components/Chat.jsx';
 import './App.css';
 
-function App() {
-  const [selectedPersona, setSelectedPersona] = useState(null);
-  const [selectedSession, setSelectedSession] = useState(null);
-  const [stage, setStage] = useState('personality'); // 'personality' | 'session' | 'chat'
+function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [selectedPersona, setSelectedPersona] = useState(location.state?.persona || null);
+  const [selectedSession, setSelectedSession] = useState(location.state?.session || null);
 
   const handlePersonaSelected = (persona) => {
     setSelectedPersona(persona);
-    setStage('session');
+    setSelectedSession(null);
+    navigate(`/sessions/${encodeURIComponent(persona.key)}`, { state: { persona } });
   };
 
   const handleSessionSelected = (session) => {
+    const persona = selectedPersona || location.state?.persona;
     setSelectedSession(session);
-    setStage('chat');
+    const targetPath = session
+      ? `/chat/${encodeURIComponent(persona.key)}/${session.id}`
+      : `/chat/${encodeURIComponent(persona.key)}`;
+    navigate(targetPath, { state: { persona, session } });
   };
 
   const handleBackToPersonalities = () => {
     setSelectedPersona(null);
     setSelectedSession(null);
-    setStage('personality');
+    navigate('/');
   };
 
   const handleBackToSessions = () => {
+    const persona = selectedPersona || location.state?.persona;
     setSelectedSession(null);
-    setStage('session');
+    navigate(`/sessions/${encodeURIComponent(persona.key)}`, { state: { persona } });
   };
+
+  const routePersona = selectedPersona || location.state?.persona;
+  const routeSession = selectedSession || location.state?.session;
 
   return (
     <div className="app">
-      {stage === 'personality' && (
-        <PersonalitySelector onPersonaSelected={handlePersonaSelected} />
-      )}
-
-      {stage === 'session' && (
-        <SessionSelector 
-          persona={selectedPersona}
-          onSessionSelected={handleSessionSelected}
-          onBack={handleBackToPersonalities}
+      <Routes>
+        <Route
+          path="/"
+          element={<PersonalitySelector onPersonaSelected={handlePersonaSelected} />}
         />
-      )}
-
-      {stage === 'chat' && (
-        <Chat 
-          persona={selectedPersona}
-          session={selectedSession}
-          onBack={handleBackToSessions}
+        <Route
+          path="/sessions/:personaKey"
+          element={
+            <SessionSelector
+              persona={routePersona}
+              onSessionSelected={handleSessionSelected}
+              onBack={handleBackToPersonalities}
+            />
+          }
         />
-      )}
+        <Route
+          path="/chat/:personaKey/:sessionId?"
+          element={
+            <Chat
+              persona={routePersona}
+              session={routeSession}
+              onBack={handleBackToSessions}
+            />
+          }
+        />
+      </Routes>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }
 
