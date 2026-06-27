@@ -3,6 +3,7 @@ import { api, getImageUrl } from '../api';
 import ConfirmModal from './ConfirmModal.jsx';
 import EditModal from './EditModal.jsx';
 import './PersonalitySelector.css';
+import Sidebar from './Sidebar.jsx';
 
 function PersonalitySelector({ onPersonaSelected }) {
   const [personalities, setPersonalities] = useState({});
@@ -123,51 +124,14 @@ function PersonalitySelector({ onPersonaSelected }) {
   return (
     <div className="ca-layout">
       {/* Sidebar */}
-      <aside className="ca-sidebar">
-        <div className="ca-brand">✦ SARP</div>
-        <nav className="ca-nav">
-          <button
-            className={`nav-item ${activeView === 'create' ? 'active' : ''}`}
-            onClick={() => {
-              setEditingPersonaKey(null);
-              setModalInitialData(null);
-              setEditModalOpen(true);
-            }}
-          >
-            <span className="nav-icon">+</span> Create
-          </button>
-          <button
-            className={`nav-item ${activeView === 'discover' ? 'active' : ''}`}
-            onClick={() => setActiveView('discover')}
-          >
-            <span className="nav-icon">✦</span> Discover
-          </button>
-          <button
-            className={`nav-item ${activeView === 'feed' ? 'active' : ''}`}
-            onClick={() => setActiveView('feed')}
-          >
-            <span className="nav-icon">📰</span> Feed
-          </button>
-          <button
-            className={`nav-item ${activeView === 'charms' ? 'active' : ''}`}
-            onClick={() => setActiveView('charms')}
-          >
-            <span className="nav-icon">✨</span> Charms
-          </button>
-          <button
-            className={`nav-item ${activeView === 'labs' ? 'active' : ''}`}
-            onClick={() => setActiveView('labs')}
-          >
-            <span className="nav-icon">🧪</span> Labs
-          </button>
-        </nav>
-        <div className="ca-sidebar-footer">
-          <div className="ca-user">
-            <span className="user-avatar">👤</span>
-            <span className="user-name">Guest</span>
-          </div>
-        </div>
-      </aside>
+      <Sidebar
+        activeView={activeView}
+        onViewChange={setActiveView}
+        onCreateClick={() => {
+          setEditingPersonaKey(null);
+          setModalInitialData(null);
+          setEditModalOpen(true);
+        }}/>
 
       {/* Main content */}
       <main className="ca-main">
