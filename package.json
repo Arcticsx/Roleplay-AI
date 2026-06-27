@@ -1,7 +1,8 @@
 {
   "scripts": {
-    "backend": "cd backend/app && python main.py",
-    "frontend": "cd frontend && npm run dev"
+    "backend": ".venv\\Scripts\\python.exe backend\\app\\main.py",
+    "frontend": "cd frontend && npm run dev",
+    "fboth": "npm-run-all --parallel backend frontend"
   },
   "dependencies": {
     "line-clamp": "^1.0.0"
