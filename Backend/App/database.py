@@ -2,207 +2,151 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 from memory import trim_memory
+from contextlib import contextmanager
 
-
-# Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Ensure data folder exists
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
-
 DB_PATH = DATA_DIR / "chatbot.db"
 
-# Database connection
-conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-conn.row_factory = sqlite3.Row
-cursor = conn.cursor()
+@contextmanager
+def get_db():
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
+# Create tables once at startup
+def init_db():
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                persona TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                sender TEXT NOT NULL,
+                content TEXT NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES sessions(id)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS context (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                sender TEXT NOT NULL,
+                content TEXT NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES sessions(id)
+            )
+        """)
 
-# Create tables
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    persona TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-)
-""")
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id INTEGER NOT NULL,
-    sender TEXT NOT NULL,
-    content TEXT NOT NULL,
-    FOREIGN KEY (session_id) REFERENCES sessions(id)
-)
-""")
-
-conn.commit()
-
-
-def info(message):
-    print(message)
-
-
-def success(message):
-    print(message)
-
-
-def get_sessions(persona_name):
+# All functions now accept conn as first parameter
+def get_sessions(conn, persona_name):
+    cursor = conn.cursor()
     cursor.execute("""
         SELECT id, persona, created_at, updated_at
-        FROM sessions
-        WHERE persona = ?
-        ORDER BY updated_at DESC
-        LIMIT 5
+        FROM sessions WHERE persona = ?
+        ORDER BY updated_at DESC LIMIT 5
     """, (persona_name,))
+    return [dict(row) for row in cursor.fetchall()]
 
-    return [
-        {
-            "id": row["id"],
-            "persona": row["persona"],
-            "created_at": row["created_at"],
-            "updated_at": row["updated_at"]
-        }
-        for row in cursor.fetchall()
-    ]
-
-
-def get_session_by_index(persona_name, index: int):
+def get_session_by_index(conn, persona_name, index: int):
+    cursor = conn.cursor()
     cursor.execute("""
         SELECT id, persona, created_at, updated_at
-        FROM sessions
-        WHERE persona=?
-        ORDER BY updated_at DESC
-        LIMIT 1 OFFSET ?
+        FROM sessions WHERE persona=?
+        ORDER BY updated_at DESC LIMIT 1 OFFSET ?
     """, (persona_name, index))
-
     row = cursor.fetchone()
+    return dict(row) if row else None
 
-    if not row:
-        return None
-
-    return {
-        "id": row["id"],
-        "persona": row["persona"],
-        "created_at": row["created_at"],
-        "updated_at": row["updated_at"]
-    }
-
-
-def load_session(persona, system_message, session=None):
+def load_session(conn, persona, system_message, session=None):
+    cursor = conn.cursor()
     if session:
         session_id = session["id"]
+        cursor.execute("""
+            SELECT id, sender, content FROM messages
+            WHERE session_id = ? ORDER BY id ASC
+        """, (session_id,))
+        rows = cursor.fetchall()
 
         cursor.execute("""
-            SELECT id, sender, content
-            FROM messages
-            WHERE session_id = ?
-            ORDER BY id ASC
+            SELECT id, sender, content FROM context
+            WHERE session_id = ? ORDER BY id ASC
         """, (session_id,))
+        context_rows = cursor.fetchall()
 
-        rows = cursor.fetchall()
-        messages = [system_message]
-
+        full_messages = [system_message]
         for row in rows:
-            if row["sender"] == "system":   # ← was row[1] / role[1], both wrong
+            if row["sender"] == "system":
                 continue
-            messages.append({
-                "id": row["id"],
-                "role": row["sender"],      # ← column is "sender" not "role"
-                "content": row["content"]
-            })
+            full_messages.append({"id": row["id"], "role": row["sender"], "content": row["content"]})
+
+        context = [system_message]
+        for row in context_rows:
+            if row["sender"] == "system":
+                continue
+            context.append({"id": row["id"], "role": row["sender"], "content": row["content"]})
     else:
-        first_msg = persona.get(
-            "opening_prompt",
-            "Introduce yourself and start the conversation."
-        )
-        messages = [
-            system_message,
-            {"role": "assistant", "content": first_msg}
-        ]
+        first_msg = persona.get("opening_prompt", "Introduce yourself and start the conversation.")
+        full_messages = [system_message, {"role": "assistant", "content": first_msg}]
+        context = [system_message.copy(), {"role": "assistant", "content": first_msg}]
 
-    full_messages = messages.copy()
+    return context, full_messages
 
-    if len(messages) > 15:
-        messages = trim_memory(messages, system_message)
+def save_session(conn, persona_name, messages, context, session_id=None):
+    cursor = conn.cursor()
+    non_system_messages = [m for m in messages if m.get("role") != "system"]
+    non_system_context = [m for m in context if m.get("role") != "system"]
 
-    return messages, full_messages
-
-
-def save_session(persona_name, messages, session_id=None):
-    if not messages:
-        info("No messages to save.")
+    if not non_system_messages and not non_system_context:
         return None
 
     now = datetime.now().isoformat()
 
     if session_id:
-        cursor.execute("""
-            UPDATE sessions SET persona=?, updated_at=? WHERE id=?
-        """, (persona_name, now, session_id))
+        cursor.execute("UPDATE sessions SET persona=?, updated_at=? WHERE id=?", (persona_name, now, session_id))
         cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+        cursor.execute("DELETE FROM context WHERE session_id = ?", (session_id,))
     else:
-        cursor.execute("""
-            INSERT INTO sessions(persona, created_at, updated_at) VALUES (?, ?, ?)
-        """, (persona_name, now, now))
+        cursor.execute("INSERT INTO sessions(persona, created_at, updated_at) VALUES (?, ?, ?)", (persona_name, now, now))
         session_id = cursor.lastrowid
 
-    for msg in messages:
-        if msg.get("role") == "system":
+    for msg in non_system_messages:
+        role = msg.get("role")
+        content = msg.get("content")
+        if not isinstance(role, str) or not isinstance(content, str):
             continue
-        cursor.execute("""
-            INSERT INTO messages(session_id, sender, content) VALUES (?, ?, ?)
-        """, (session_id, msg["role"], msg["content"]))
+        cursor.execute("INSERT INTO messages(session_id, sender, content) VALUES (?, ?, ?)", (session_id, role, content))
 
-    conn.commit()
+    for msg in non_system_context:
+        role = msg.get("role")
+        content = msg.get("content")
+        if not isinstance(role, str) or not isinstance(content, str):
+            continue
+        cursor.execute("INSERT INTO context(session_id, sender, content) VALUES (?, ?, ?)", (session_id, role, content))
+
+    print(f"Session {session_id} saved.")
     return session_id
 
-
-def delete_session(session_id):
+def delete_session(conn, session_id):
     if not session_id:
         return False
-
+    cursor = conn.cursor()
     cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+    cursor.execute("DELETE FROM context WHERE session_id = ?", (session_id,))
     cursor.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
-    conn.commit()
     return True
-
-
-def prompt_input(prompt):
-    return input(prompt)
-
-
-def print_sessions(sessions):
-    if not sessions:
-        print("No previous sessions found.")
-        return
-
-    print("Previous sessions:")
-    for index, session in enumerate(sessions, start=1):
-        print(f"{index}. Session {session['id']} ({session['updated_at']})")
-
-
-def pick_session(persona_name):
-    sessions = get_sessions(persona_name)
-    if not sessions:
-        return None
-
-    print_sessions(sessions)
-    choice = prompt_input("Choose session (or N for new): ").strip().lower()
-
-    if choice in {"", "n"}:
-        return None
-    if choice == "exit":
-        raise SystemExit(0)
-
-    try:
-        index = int(choice)
-    except ValueError:
-        return None
-
-    if 1 <= index <= len(sessions):
-        return sessions[index - 1]
-    return None

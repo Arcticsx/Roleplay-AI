@@ -118,13 +118,14 @@ export const api = {
     return handleResponse(res);
   },
 
-  async saveSession(personaKey, fullMessages, sessionId) {
+  async saveSession(personaKey, messages, context, sessionId) {
     const res = await fetch(`${API_BASE}/sessions/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         persona_key: personaKey,
-        full_messages: fullMessages,
+        messages: messages,
+        context: context,
         session_id: sessionId
       })
     });
@@ -139,14 +140,14 @@ export const api = {
   },
 
   // Chat
-  async sendMessage(personaKey, messages, fullMessages, sessionId, userInput) {
+  async sendMessage(personaKey, messages, context, sessionId, userInput) {
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         persona_key: personaKey,
         messages,
-        full_messages: fullMessages,
+        context: context,
         session_id: sessionId,
         user_input: userInput
       })

@@ -4,7 +4,8 @@ from fastapi import (
     Form,
     File,
     UploadFile,
-    FastAPI
+    FastAPI,
+    Depends
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,15 +17,16 @@ from personalities import (
     delete_personality,
     pick_personality,
 )
-from database import save_session, load_session, get_session_by_index, get_sessions, delete_session, DATA_DIR 
+from database import save_session, load_session, get_session_by_index, get_sessions, delete_session, DATA_DIR, init_db, get_db 
 from response import get_response
+from personalities import init_personalities_db
 from memory import trim_memory
 from config import textPrompt
 import os
 import shutil
+import sqlite3
 from uuid import uuid4
 from pathlib import Path
-
 
 app = FastAPI()
 
@@ -42,6 +44,14 @@ os.makedirs(AVATAR_DIR, exist_ok=True)
 
 # Mount static files to serve images
 app.mount("/data/images", StaticFiles(directory=str(AVATAR_DIR)), name="images")
+
+init_db()
+init_personalities_db()
+
+def db_dependency():
+    with get_db() as conn:
+        yield conn
+
 
 #------------------PERSONALITIES----------------------
 
@@ -150,17 +160,17 @@ def pick_persona(body: PickPersonaRequest):
 
 #------------------SESSIONS----------------------
 @app.get("/sessions/{persona_name}")
-def list_sessions(persona_name: str):
+def list_sessions(persona_name: str, conn: sqlite3.Connection = Depends(db_dependency)):
     """Get the last 5 sessions for a persona."""
-    sessions = get_sessions(persona_name)
+    sessions = get_sessions(conn, persona_name)
     if not sessions:
         return {"sessions": [], "message": "No previous sessions found."}
     return {"sessions": sessions}
 
 
 @app.delete("/sessions/{persona_name}/{session_id}")
-def delete_session_endpoint(persona_name: str, session_id: int):
-    deleted = delete_session(session_id)
+def delete_session_endpoint(persona_name: str, session_id: int, conn: sqlite3.Connection = Depends(db_dependency)):
+    deleted = delete_session(conn, session_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Session not found.")
     return {"deleted": True}
@@ -171,12 +181,12 @@ class PickSessionRequest(BaseModel):
     index: int | None = None  # None = start new session
 
 @app.post("/sessions/pick")
-def pick_session_endpoint(body: PickSessionRequest):
+def pick_session_endpoint(body: PickSessionRequest, conn: sqlite3.Connection = Depends(db_dependency)):
     """Pick a session by index, or pass null index to start a new one."""
     if body.index is None:
         return {"session": None, "new": True}
 
-    session = get_session_by_index(body.persona_name, body.index - 1)  # 1-based
+    session = get_session_by_index(conn, body.persona_name, body.index - 1)  # 1-based
     if not session:
         return {"session": None, "new": True, "warning": "Index out of range, starting new session."}
 
@@ -194,7 +204,7 @@ class LoadSessionRequest(BaseModel):
     
 
 @app.post("/sessions/load")
-def load(body: LoadSessionRequest):
+def load(body: LoadSessionRequest, conn: sqlite3.Connection = Depends(db_dependency)):
     personalities = get_personalities()
     persona = personalities.get(body.persona_key)
     if not persona:
@@ -205,30 +215,39 @@ def load(body: LoadSessionRequest):
 
     # Convert Pydantic model to dict if session exists
     session_dict = body.session.model_dump() if body.session else None
-    messages, full_messages = load_session(persona, system_message, session_dict)
+    context, full_messages = load_session(conn, persona, system_message, session_dict)
     
     # Remove id field from messages for clean response
-    clean = [{k: v for k, v in m.items() if k != "id"} for m in messages]
+    clean_messages = [{k: v for k, v in m.items() if k != "id"} for m in full_messages]
+    clean_context = [{k: v for k, v in m.items() if k != "id"} for m in context]
 
     return {
         "session": session_dict,
-        "messages": clean,
-        "full_messages": full_messages,
+        "messages": clean_messages,
+        "context": clean_context,
         "resumed": body.session is not None
     }
 
+class Message(BaseModel):
+    role: str
+    content: str
+
 class SaveSessionRequest(BaseModel):
     persona_key: str
-    full_messages: list[dict]
+    messages: list[dict]
+    context: list[dict]
     session_id: int | None = None
 
 @app.post("/sessions/save")
-def save(body: SaveSessionRequest):
+def save(body: SaveSessionRequest, conn: sqlite3.Connection = Depends(db_dependency)):
     personalities = get_personalities()
     persona = personalities.get(body.persona_key)
     if not persona:
         raise HTTPException(status_code=404, detail="Persona not found.")
-    session_id = save_session(persona["name"], body.full_messages, body.session_id)
+
+    session_id = save_session(conn, persona["name"], body.messages, body.context, body.session_id)
+    if session_id is None:
+        raise HTTPException(status_code=400, detail="No messages to save.")
     return {"saved": True, "session_id": session_id}
 
     
@@ -237,7 +256,7 @@ def save(body: SaveSessionRequest):
 class ChatRequest(BaseModel):
     persona_key: str
     messages: list[dict]        
-    full_messages: list[dict]   
+    context: list[dict]   
     session_id: int | None = None
     user_input: str
 
@@ -263,9 +282,9 @@ def chat(body: ChatRequest):
     messages.append({"role": "assistant", "content": assistant_msg})
     messages = trim_memory(messages, system_message)
 
-    # Update full history
-    msg_id = max((m.get("id", 0) for m in body.full_messages), default=0)
-    full_messages = body.full_messages + [
+    # Update full context history
+    msg_id = max((m.get("id", 0) for m in body.context), default=0)
+    context = body.context + [
         {"id": msg_id + 1, "role": "user",      "content": body.user_input},
         {"id": msg_id + 2, "role": "assistant",  "content": assistant_msg},
     ]
@@ -273,5 +292,5 @@ def chat(body: ChatRequest):
     return {
         "assistant_message": assistant_msg,
         "messages": messages,
-        "full_messages": full_messages,
+        "context": context,
     }

@@ -4,7 +4,7 @@ import './Chat.css';
 
 function Chat({ persona, session, onBack }) {
   const [messages, setMessages] = useState([]);
-  const [fullMessages, setFullMessages] = useState([]);
+  const [context, setContext] = useState([]);
   const [sessionId, setSessionId] = useState(session?.id || null);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +29,7 @@ function Chat({ persona, session, onBack }) {
     try {
       const data = await api.loadSession(persona.key, session);
       setMessages(data.messages || []);
-      setFullMessages(data.full_messages || []);
+      setContext(data.context || []);
       setSessionId(session?.id || null);
     } catch (error) {
       console.error('Failed to load session:', error);
@@ -50,12 +50,12 @@ function Chat({ persona, session, onBack }) {
       const data = await api.sendMessage(
         persona.key,
         messages,
-        fullMessages,
+        context,
         sessionId,
         userInput
       );
       setMessages(data.messages);
-      setFullMessages(data.full_messages);
+      setContext(data.context);
     } catch (error) {
       console.error('Failed to send message:', error);
       alert('Failed to send message');
@@ -68,13 +68,13 @@ function Chat({ persona, session, onBack }) {
   };
 
   const handleSaveSession = async () => {
-    if (fullMessages.length === 0) {
+    if (context.length === 0) {
       alert('No messages to save');
       return;
     }
     setLoading(true);
     try {
-      const data = await api.saveSession(persona.key, fullMessages, sessionId);
+      const data = await api.saveSession(persona.key, messages, context, sessionId);
       setSessionId(data.session_id);
       alert('Session saved successfully!');
     } catch (error) {
@@ -119,7 +119,7 @@ function Chat({ persona, session, onBack }) {
         <button
           className="btn-save"
           onClick={handleSaveSession}
-          disabled={loading || fullMessages.length === 0}
+          disabled={loading || context.length === 0}
         >
           Save
         </button>
