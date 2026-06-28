@@ -20,8 +20,10 @@ function Chat({ persona, session, onBack }) {
   }, [session?.id, routeSessionId]);
 
   useEffect(() => {
-    initializeChat();
-  }, [persona?.key, session?.id, routeSessionId]);
+    if (persona?.key) {
+        initializeChat();
+    }
+  }, []); 
 
   useEffect(() => {
     scrollToBottom();
@@ -32,22 +34,23 @@ function Chat({ persona, session, onBack }) {
   };
 
   const initializeChat = async () => {
-    const activeSession = session || (routeSessionId ? { id: routeSessionId } : null);
+    if (!persona?.key) return;
+    const activeSession = session || (routeSessionId ? { id: parseInt(routeSessionId) } : null);
     setInitializing(true);
     setMessages([]);
     setContext([]);
     try {
-      const data = await api.loadSession(persona.key, activeSession);
-      setMessages(data.messages || []);
-      setContext(data.context || []);
-      setSessionId(activeSession?.id || null);
+        const data = await api.loadSession(persona.key, activeSession);
+        console.log("loadSession response:", data);
+        setMessages(data.messages || []);
+        setContext(data.context || []);
+        setSessionId(activeSession?.id || null);
     } catch (error) {
-      console.error('Failed to load session:', error);
-      alert('Failed to load chat session');
+        console.error('Failed to load session:', error);
+        alert('Failed to load chat session');
     }
     setInitializing(false);
   };
-
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;

@@ -113,14 +113,12 @@ export const api = {
     return handleResponse(res);
   },
 
-  async loadSession(personaKey, personaName, personaId, session) {
+  async loadSession(personaKey, session) {
     const res = await fetch(`${API_BASE}/sessions/load`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         persona_key: personaKey,
-        persona_name: personaName,
-        persona_id: personaId,
         session 
       })
     });

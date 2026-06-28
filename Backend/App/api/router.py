@@ -214,6 +214,7 @@ class LoadSessionRequest(BaseModel):
 
 @app.post("/sessions/load")
 def load(body: LoadSessionRequest, conn: sqlite3.Connection = Depends(db_dependency)):
+    print("load body:", body)
     personalities = get_personalities()
     persona = personalities.get(body.persona_key)
     if not persona:

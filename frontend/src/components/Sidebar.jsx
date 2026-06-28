@@ -63,8 +63,8 @@ function Sidebar({ activeView, onViewChange, onCreateClick }) {
           <div className="absolute inset-0 bg-accent/20 blur-2xl rounded-full"></div>
         </div>
         <div className="relative inline-block">
-          <span className="text-3xl font-bold tracking-tight text-text/90 hover:text-text transition-colors duration-300">
-            SARP.
+          <span className="text-2xl font-bold tracking-tight text-text/90 hover:text-text transition-colors duration-300">
+            fane.
           </span>
           <span className="absolute -bottom-1 -right-1 h-2 w-12 bg-accent rounded-full animate-pulse"></span>
         </div>
