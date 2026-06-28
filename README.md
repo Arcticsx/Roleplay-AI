@@ -6,7 +6,7 @@ A CLI application for immersive roleplay conversations with AI-powered character
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
 ![REACT](https://img.shields.io/badge/-ReactJs-61DAFB?logo=react&logoColor=white)
-![JAVASCRIPT](https://shields.io/badge/JavaScript-F7DF1E?logo=JavaScript&logoColor=white)
+![JAVASCRIPT](https://shields.io/badge/JavaScript-61DAFB?logo=JavaScript&logoColor=white)
 
 ### **Tools**
 ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
