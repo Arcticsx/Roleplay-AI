@@ -10,7 +10,7 @@ A CLI application for immersive roleplay conversations with AI-powered character
 
 ### **Tools**
 ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
-[![Ollama](https://img.shields.io/badge/Ollama-fff?logo=ollama&logoColor=000)](#)
+[![Ollama](https://img.shields.io/badge/Ollama-fff?style=for-the-badge&logo=ollama&logoColor=000)](#)
 ## Features
 
 - **Multiple AI Providers**: Works with OpenAI, Anthropic Claude, Deepseek and local Ollama models
