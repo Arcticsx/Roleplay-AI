@@ -1,15 +1,13 @@
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-
-from pymongo import cursor
-from memory import trim_memory
 from contextlib import contextmanager
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 DB_PATH = DATA_DIR / "chatbot.db"
+
 
 @contextmanager
 def get_db():
@@ -24,23 +22,38 @@ def get_db():
     finally:
         conn.close()
 
-# Create tables once at startup
+
 def init_db():
+    """Initialize database tables and handle schema migration."""
     with get_db() as conn:
         cursor = conn.cursor()
+
+        # Create sessions table with both persona (old) and persona_key (new)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                persona TEXT NOT NULL,
+                persona TEXT NOT NULL,               -- kept for compatibility
+                persona_key TEXT NOT NULL,           -- new column
                 persona_id TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
         """)
+
+        # For existing databases that might lack persona_key
         cursor.execute("PRAGMA table_info(sessions)")
-        column_names = [row[1] for row in cursor.fetchall()]
-        if 'persona_id' not in column_names:
-            cursor.execute("ALTER TABLE sessions ADD COLUMN persona_id TEXT")
+        columns = [row[1] for row in cursor.fetchall()]
+
+        if 'persona_key' not in columns:
+            cursor.execute("ALTER TABLE sessions ADD COLUMN persona_key TEXT")
+            # Copy data from old 'persona' to 'persona_key'
+            if 'persona' in columns:
+                cursor.execute("UPDATE sessions SET persona_key = persona")
+            else:
+                # If 'persona' doesn't exist, we need to set a default – unlikely.
+                pass
+
+        # Create messages and context tables (unchanged)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +73,7 @@ def init_db():
             )
         """)
 
-# All functions now accept conn as first parameter
+
 def get_sessions(conn, persona_key: str):
     cursor = conn.cursor()
     cursor.execute("""
@@ -73,6 +86,7 @@ def get_sessions(conn, persona_key: str):
     rows = cursor.fetchall()
     columns = [desc[0] for desc in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
+
 
 def get_recent_sessions(conn):
     cursor = conn.cursor()
@@ -98,22 +112,19 @@ def get_recent_sessions(conn):
     columns = [desc[0] for desc in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
 
-def get_session_by_index(conn, persona_name, index: int, persona_id=None):
+
+def get_session_by_index(conn, persona_key, index: int, persona_id=None):
     cursor = conn.cursor()
-    if persona_id is not None:
-        cursor.execute("""
-            SELECT id, persona, persona_id, created_at, updated_at
-            FROM sessions WHERE (persona=? OR persona_id=?)
-            ORDER BY updated_at DESC LIMIT 1 OFFSET ?
-        """, (persona_name, persona_id, index))
-    else:
-        cursor.execute("""
-            SELECT id, persona, persona_id, created_at, updated_at
-            FROM sessions WHERE persona=?
-            ORDER BY updated_at DESC LIMIT 1 OFFSET ?
-        """, (persona_name, index))
+    cursor.execute("""
+        SELECT id, persona_key, persona_id, created_at, updated_at
+        FROM sessions
+        WHERE persona_key = ?
+        ORDER BY updated_at DESC
+        LIMIT 1 OFFSET ?
+    """, (persona_key, index))
     row = cursor.fetchone()
     return dict(row) if row else None
+
 
 def load_session(conn, persona, system_message, session=None):
     cursor = conn.cursor()
@@ -149,6 +160,7 @@ def load_session(conn, persona, system_message, session=None):
 
     return context, full_messages
 
+
 def save_session(conn, persona_key, messages=None, context=None, session_id=None):
     cursor = conn.cursor()
     if messages is None:
@@ -165,16 +177,18 @@ def save_session(conn, persona_key, messages=None, context=None, session_id=None
     now = datetime.now().isoformat()
 
     if session_id:
+        # Update both persona and persona_key to keep old column satisfied
         cursor.execute(
-            "UPDATE sessions SET persona_key=?, updated_at=? WHERE id=?",
-            (persona_key, now, session_id)
+            "UPDATE sessions SET persona=?, persona_key=?, updated_at=? WHERE id=?",
+            (persona_key, persona_key, now, session_id)
         )
         cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
         cursor.execute("DELETE FROM context WHERE session_id = ?", (session_id,))
     else:
+        # Insert both persona and persona_key
         cursor.execute(
-            "INSERT INTO sessions(persona_key, created_at, updated_at) VALUES (?, ?, ?)",
-            (persona_key, now, now)
+            "INSERT INTO sessions(persona, persona_key, created_at, updated_at) VALUES (?, ?, ?, ?)",
+            (persona_key, persona_key, now, now)
         )
         session_id = cursor.lastrowid
 
@@ -183,17 +197,24 @@ def save_session(conn, persona_key, messages=None, context=None, session_id=None
         content = msg.get("content")
         if not isinstance(role, str) or not isinstance(content, str):
             continue
-        cursor.execute("INSERT INTO messages(session_id, sender, content) VALUES (?, ?, ?)", (session_id, role, content))
+        cursor.execute(
+            "INSERT INTO messages(session_id, sender, content) VALUES (?, ?, ?)",
+            (session_id, role, content)
+        )
 
     for msg in non_system_context:
         role = msg.get("role")
         content = msg.get("content")
         if not isinstance(role, str) or not isinstance(content, str):
             continue
-        cursor.execute("INSERT INTO context(session_id, sender, content) VALUES (?, ?, ?)", (session_id, role, content))
+        cursor.execute(
+            "INSERT INTO context(session_id, sender, content) VALUES (?, ?, ?)",
+            (session_id, role, content)
+        )
 
     print(f"Session {session_id} saved.")
     return session_id
+
 
 def delete_session(conn, session_id):
     if not session_id:

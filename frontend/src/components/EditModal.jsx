@@ -76,7 +76,7 @@ export default function EditModal({ open, initialData, onSave, onCancel, saving 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-300">Description</label>
             <textarea
-              className="min-h-[80px] w-full rounded-xl border border-border/60 bg-[#1a0a2e] px-3 py-2 text-sm text-white placeholder:text-muted outline-none transition focus:border-accent"
+              className="min-h-[80px] max-h-48 overflow-y-auto w-full rounded-xl border border-border/60 bg-[#1a0a2e] px-3 py-2 text-sm text-white placeholder:text-muted outline-none transition focus:border-accent"
               value={form.description}
               onChange={(e) => handleChange('description', e.target.value)}
               placeholder="Brief description"
@@ -86,7 +86,7 @@ export default function EditModal({ open, initialData, onSave, onCancel, saving 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-300">Personality</label>
             <textarea
-              className="min-h-[100px] w-full rounded-xl border border-border/60 bg-[#1a0a2e] px-3 py-2 text-sm text-white placeholder:text-muted outline-none transition focus:border-accent"
+              className="min-h-[100px] max-h-48 overflow-y-auto w-full rounded-xl border border-border/60 bg-[#1a0a2e] px-3 py-2 text-sm text-white placeholder:text-muted outline-none transition focus:border-accent"
               value={form.system}
               onChange={(e) => handleChange('system', e.target.value)}
               placeholder="Define the system behavior"
@@ -97,7 +97,7 @@ export default function EditModal({ open, initialData, onSave, onCancel, saving 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-300">Base Prompt / Scenario</label>
             <textarea
-              className="min-h-[90px] w-full rounded-xl border border-border/60 bg-[#1a0a2e] px-3 py-2 text-sm text-white placeholder:text-muted outline-none transition focus:border-accent"
+              className="min-h-[90px] max-h-48 overflow-y-auto w-full rounded-xl border border-border/60 bg-[#1a0a2e] px-3 py-2 text-sm text-white placeholder:text-muted outline-none transition focus:border-accent"
               value={form.scenario}
               onChange={(e) => handleChange('scenario', e.target.value)}
               placeholder="Scenario or context"
@@ -107,7 +107,7 @@ export default function EditModal({ open, initialData, onSave, onCancel, saving 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-300">Opening Prompt</label>
             <textarea
-              className="min-h-[90px] w-full rounded-xl border border-border/60 bg-[#1a0a2e] px-3 py-2 text-sm text-white placeholder:text-muted outline-none transition focus:border-accent"
+              className="min-h-[90px] max-h-48 overflow-y-auto w-full rounded-xl border border-border/60 bg-[#1a0a2e] px-3 py-2 text-sm text-white placeholder:text-muted outline-none transition focus:border-accent"
               value={form.opening_prompt}
               onChange={(e) => handleChange('opening_prompt', e.target.value)}
               placeholder="Initial assistant message"
