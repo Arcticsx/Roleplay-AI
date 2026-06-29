@@ -9,10 +9,17 @@ function Sidebar({ activeView, onViewChange, onCreateClick }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+  const fetchSessions = () => {
     api.getRecentSessions()
       .then(data => setRecentSessions(data.sessions || []))
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  fetchSessions(); // initial fetch
+  const interval = setInterval(fetchSessions, 30000); // refresh every 30s
+
+  return () => clearInterval(interval); // cleanup on unmount
   }, []);
 
   const formatDate = (dateStr) => {

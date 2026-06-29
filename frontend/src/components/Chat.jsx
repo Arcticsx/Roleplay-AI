@@ -54,15 +54,22 @@ function Chat({ persona, session, onBack }) {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
-
     const userInput = input.trim();
     setInput('');
     setLoading(true);
+
+    const optimisticMessages = [...messages, { role: 'user', content: userInput }];
+    setMessages(optimisticMessages);
+
 
     try {
       const data = await api.sendMessage(persona.key, messages, context, sessionId, userInput);
       setMessages(data.messages);
       setContext(data.context);
+
+      const saveData = await api.saveSession(persona.key, data.messages, data.context, sessionId);
+      setSessionId(saveData.session_id);
+
     } catch (error) {
       console.error('Failed to send message:', error);
       alert('Failed to send message');
@@ -126,13 +133,6 @@ function Chat({ persona, session, onBack }) {
           <div className="text-base font-semibold text-text">{persona.name}</div>
           <div className="text-sm text-muted">Session #{sessionId || 'New'}</div>
         </div>
-        <button
-          className="rounded-full bg-emerald-500/10 px-4 py-1.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={handleSaveSession}
-          disabled={loading || context.length === 0}
-        >
-          Save
-        </button>
       </div>
 
       <div className="mb-4 flex-1 overflow-y-auto rounded-2xl border border-border/50 bg-surface/60 p-4 shadow-inner shadow-black/20">
