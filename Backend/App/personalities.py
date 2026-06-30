@@ -1,7 +1,7 @@
 from database import get_db
 from sqlalchemy import Column, Integer, Text
 import re
-from models import Personality
+from models import Personality, Session   # <-- Session added
 
 def init_personalities_db():
     # Handled by Base.metadata.create_all()
@@ -115,12 +115,14 @@ def update_personality(
 
 def delete_personality(key: str):
     with get_db() as db:
-        rows = (
-            db.query(Personality)
-            .filter(Personality.key == key)
-            .delete()
-        )
+        # Delete all sessions belonging to this personality
+        # (cascade will remove their messages and context automatically)
+        sessions = db.query(Session).filter(Session.persona_key == key).all()
+        for session in sessions:
+            db.delete(session)
 
+        # Now delete the personality itself
+        rows = db.query(Personality).filter(Personality.key == key).delete()
         return rows > 0
 
 
