@@ -1,7 +1,12 @@
-from database import get_db
+try:
+    from .database import get_db
+    from .models import Personality, Session
+except ImportError:
+    from database import get_db
+    from models import Personality, Session
+
 from sqlalchemy import Column, Integer, Text
 import re
-from models import Personality, Session   # <-- Session added
 
 def init_personalities_db():
     # Handled by Base.metadata.create_all()

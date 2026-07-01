@@ -3,9 +3,14 @@ import shutil
 import uuid
 from sqlalchemy.orm import Session
 
-from services.documents import chunk_document, embed_chunks
-from services.vectorstore import save_chunks_to_chromadb
-from models import SourceDocument
+try:
+    from .documents import chunk_document, embed_chunks
+    from .vectorstore import save_chunks_to_chromadb
+    from ..models import SourceDocument
+except ImportError:
+    from services.documents import chunk_document, embed_chunks
+    from services.vectorstore import save_chunks_to_chromadb
+    from models import SourceDocument
 
 UPLOAD_DIR = "app/data/uploads"
 ALLOWED_EXTENSIONS = {".pdf"}

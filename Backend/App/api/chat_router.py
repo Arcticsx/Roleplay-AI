@@ -10,19 +10,36 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from api.chronicle_router import router as chronicle_router
-from api.documents_router import router as documents_router
-from personalities import (
-    get_personalities,
-    create_personality,
-    update_personality,
-    delete_personality,
-    pick_personality,
-)
-from database import save_session, load_session, get_session_by_index, get_recent_sessions, get_sessions, delete_session, DATA_DIR, init_db, get_db 
-from response import get_response
-from memory import trim_memory
-from config import textPrompt
+
+try:
+    from .chronicle_router import router as chronicle_router
+    from .documents_router import router as documents_router
+    from ..personalities import (
+        get_personalities,
+        create_personality,
+        update_personality,
+        delete_personality,
+        pick_personality,
+    )
+    from ..database import save_session, load_session, get_session_by_index, get_recent_sessions, get_sessions, delete_session, DATA_DIR, init_db, get_db
+    from ..response import get_response
+    from ..memory import trim_memory
+    from ..config import textPrompt
+except ImportError:
+    from api.chronicle_router import router as chronicle_router
+    from api.documents_router import router as documents_router
+    from personalities import (
+        get_personalities,
+        create_personality,
+        update_personality,
+        delete_personality,
+        pick_personality,
+    )
+    from database import save_session, load_session, get_session_by_index, get_recent_sessions, get_sessions, delete_session, DATA_DIR, init_db, get_db
+    from response import get_response
+    from memory import trim_memory
+    from config import textPrompt
+
 import os
 import shutil
 import sqlite3

@@ -2,9 +2,14 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from database import get_db
-from models import RpgSession
-from services.ingestion import ingest_pdf_to_session
+try:
+    from ..database import get_db
+    from ..models.rpg_sessions import RpgSession
+    from ..services.ingestion import ingest_pdf_to_session
+except ImportError:
+    from database import get_db
+    from models.rpg_sessions import RpgSession
+    from services.ingestion import ingest_pdf_to_session
 
 router = APIRouter(prefix="/story", tags=["chronicle"])
 

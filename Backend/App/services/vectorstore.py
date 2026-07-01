@@ -1,4 +1,7 @@
-from app.config import CHROMA_PERSIST_DIR
+try:
+    from ..config import CHROMA_PERSIST_DIR
+except ImportError:
+    from config import CHROMA_PERSIST_DIR
 import chromadb
 import uuid  
 

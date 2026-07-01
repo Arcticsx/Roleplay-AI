@@ -1,7 +1,11 @@
 # Handles all LLM API calls via aisuite, with retry logic
 import aisuite as ai
 import time
-from config import AISUITE_MODEL, PROVIDER, API_KEY           
+
+try:
+    from .config import AISUITE_MODEL, PROVIDER, API_KEY
+except ImportError:
+    from config import AISUITE_MODEL, PROVIDER, API_KEY
 
 def get_client():
     provider_configs = {}

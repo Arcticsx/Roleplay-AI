@@ -1,11 +1,18 @@
 from datetime import datetime, timezone
 from pathlib import Path
 from contextlib import contextmanager
-from models import Personality
+
+try:
+    from .models import Personality
+    from .models import Session, Message, Context
+    from .models.dbbase import Base
+except ImportError:
+    from models import Personality
+    from models import Session, Message, Context
+    from models.dbbase import Base
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Session, Message, Context
-from models.dbbase import Base
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"

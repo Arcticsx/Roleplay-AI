@@ -10,7 +10,7 @@ from sqlalchemy import (
     Boolean,
 )
 from sqlalchemy.orm import relationship
-from app.database import Base
+from .dbbase import Base
 
 def _uuid() -> str:
     return str(uuid.uuid4())

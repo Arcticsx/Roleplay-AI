@@ -5,10 +5,16 @@ import uuid
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from services.documents import chunk_document, embed_chunks
-from services.vectorstore import save_chunks_to_chromadb
-from app.database import get_db 
-from app.models import SourceDocument
+try:
+    from ..services.documents import chunk_document, embed_chunks
+    from ..services.vectorstore import save_chunks_to_chromadb
+    from ..database import get_db
+    from ..models import SourceDocument
+except ImportError:
+    from services.documents import chunk_document, embed_chunks
+    from services.vectorstore import save_chunks_to_chromadb
+    from app.database import get_db
+    from app.models import SourceDocument
 
 router = APIRouter(prefix="/story", tags=["documents"])
 

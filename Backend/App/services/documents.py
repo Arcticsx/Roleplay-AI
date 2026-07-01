@@ -2,7 +2,7 @@ import pymupdf4llm
 import re
 from langchain_text_splitters import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
 from sentence_transformers import SentenceTransformer
-from backend.app.config import EMBEDDING_MODEL
+from config import EMBEDDING_MODEL
 
 def extract_markdown_from_pdf(file_path):
     return pymupdf4llm.to_markdown(file_path)
