@@ -10,6 +10,8 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from api.chronicle_router import router as chronicle_router
+from api.documents_router import router as documents_router
 from personalities import (
     get_personalities,
     create_personality,
@@ -309,7 +311,5 @@ def chat(body: ChatRequest):
         "messages": messages,
         "context": context,
     }
-    
-    
-#  CHRONICLE ENDPOINTS
-
+app.include_router(chronicle_router)
+app.include_router(documents_router)
